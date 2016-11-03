@@ -1,26 +1,205 @@
 ---
-title       : 
-subtitle    : 
-author      : 
+title       : Multinomial Models 
+subtitle    : Logit / Probit / Conditional Logit
+author      : William Reed
 job         : 
 framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
 highlighter : highlight.js  # {highlight.js, prettify, highlight}
 hitheme     : tomorrow      # 
-widgets     : []            # {mathjax, quiz, bootstrap}
+widgets     : mathjax            # {mathjax, quiz, bootstrap}
 mode        : selfcontained # {standalone, draft}
 knit        : slidify::knit2slides
+github:
+user: strandvej
+repo: slides
+
+
+--- 
+
+## Models To Be Considered
+
+ > - Multinomial Logit
+ > - Multinomial Probit
+ > - Conditional Logit
+
+--- .build 
+
+## Multinomial Logit
+
+
+$$Pr(y_i=m|\mathbf{x_i})=\frac{exp(\mathbf{x_i\beta_m})}{\sum_{j=1}^J exp(\mathbf{x_i\beta_j})}$$
+
+In this model there are $m$ categories of outcomes such as:
+
+1.  Vote Clinton
+2.  Vote Trump
+3.  Vote Other
+4.  Don't Vote
+
+There are $j$ vectors of coefficients $\mathbf{\beta_j}$, and there are $i$ observations
+of a matrix of $\mathbf{x}$ independent variables.
+
+
+
+---
+## Identification
+
+> - As in the ordered logit/probit, the multinomial logit is not identified
+without a constraint.  
+
+> - Typically, the analyst chooses one of the categories
+and compares all other outcomes to this "excluded" or "reference catetory":
+
+> - Assume that on vector of the coefficients equals a constant, e.g. ($\beta_1=0$).
+
+> - $$Pr(y_i=m|\mathbf{x_i})=\frac{exp(\mathbf{x_i\beta_m})}{\sum_{j=1}^J exp(\mathbf{x_i\beta_j})}$$ where $$\mathbf{\beta_1}=0$$
+
 ---
 
-## Read-And-Delete
+---
+## Random Utility Interpretation
 
-1. Edit YAML front matter
-2. Write using R Markdown
-3. Use an empty line followed by three dashes to separate slides!
+> - McFadden and Luce (1959)
+> - Individuals choose the outcom that maximizes their utility
+> - Utility for choice 1 is $u_1$ and for choice 2 the utility is $u_2$
+> - Choose 1 if $u_1>u_2$.  Choose 2 if $u_2>u_1$
+> - generalizing this to $m$ choices for individual $i$: $u_{im}=u_{im}+\epsilon_{im}$
+> - $Pr(y_i)=1=Pr(u_{i1}>u_{i2})$
+> - $=Pr(u_{i1}+\epsilon_{i1}>u_{i2}+\epsilon_{i2})$
+> - $=Pr(\epsilon_{i1}-\epsilon_{i2}>u_{i1}-u_{i2})$
+> - When the error terms are independent and following a type I extereme-value
+distirbution, MacFadden (1973) proves that this is the multinomial logit model specification.
 
---- .class #id 
+---
+ 
+ 
+--- 
+## R Examples
 
-## Slide 2
+The data includes 200 students. The DV is __prog__, program type. The predictor variables are social economic status, **ses**, and writing score, **write**.
+```{r, echo=FALSE, eval=TRUE} 
+require(foreign)
+require(nnet)
+ml <- read.dta("http://www.ats.ucla.edu/stat/data/hsbdemo.dta")
+```
+```{r}
+with(ml, table(ses, prog))
+```
+---
+
+---
+```{r}
+with(ml, do.call(rbind, tapply(write, prog,
+  function(x) c(M = mean(x), SD = sd(x)))))
+```
+---
+
+---
+```{r, echo=TRUE, eval=TRUE} 
+ml <- read.dta("http://www.ats.ucla.edu/stat/data/hsbdemo.dta")
+ml$prog2 <- relevel(ml$prog, ref = "academic")
+test <- multinom(prog2 ~ ses + write, data = ml)
+```
+--- 
+
+---
+Estimated Coefficients
+```{r}
+test
+```
+---
+
+---
+Test statistics
+
+```{r}
+z <- summary(test)$coefficients/summary(test)$standard.errors
+z
+```
+P-values
+```{r}
+p <- (1 - pnorm(abs(z), 0, 1))*2
+p
+```
+---
+
+---
+## Substantive Effects
+```{r}
+require(foreign)
+require(nnet)
+ml <- read.dta("http://www.ats.ucla.edu/stat/data/hsbdemo.dta")
+ml$prog2 <- relevel(ml$prog, ref = "academic")
+test <- multinom(prog2 ~ ses + write, data = ml)
+```
+---
+
+---
+What can we extract from the text object?
+
+```{r}
+coef(test)
+```
+---
+
+---
+What can we extract from the text object?
+
+```{r}
+vcov(test)
+```
+---
+
+
+---
+## Things to Consider
+
+> - Can outcomes be combined
+> - Likelihood Ratio Test
+> - Let's think this through
+
+---
+
+
+---
+## Testing for IIA
+```{r}
+library(mlogit)
+```
+---
+
+---
+```{r}
+ml_1<-mlogit.data(ml,shape="wide",choice="prog")
+test <- mlogit(prog ~ 1 | ses + write,  data = ml_1, 
+               reflevel="academic", probit=FALSE)
+```
+---
+
+
+---
+```{r}
+test
+```
+---
 
 
 
+---
+## Testing for IIA
 
+> - Hausman and McFadden (1984)
+> - Logic of this test
+> - Implementation
+
+---
+
+
+---
+## Still to Consider
+
+> - Multinomial Probit
+> - Conditional Logit
+> - Mixed Models
+
+---
